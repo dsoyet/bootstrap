@@ -337,13 +337,34 @@
         connectHID();
 
         // 键盘：遥控器按键通过 WebHID dispatch 到这里统一处理
+        var seekTimer = null, seekDir = 0;
+        function startSeek(dir) {
+            if (seekTimer) return;
+            seekDir = dir;
+            function tick() {
+                if (!v.duration || seekDir === 0) { stopSeek(); return; }
+                if (seekDir > 0) { hlsSeek(Math.min(v.duration, v.currentTime + 15)); }
+                else { hlsSeek(Math.max(0, v.currentTime - 15)); }
+                showProgress();
+                seekTimer = setTimeout(tick, 150);
+            }
+            tick();
+        }
+        function stopSeek() {
+            clearTimeout(seekTimer); seekTimer = null; seekDir = 0;
+        }
+
         var _115Key = function (e) {
             if (!v.duration) return;
             if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-                hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
+                if (e.type === 'keydown') startSeek(-1);
+                else stopSeek();
+                e.preventDefault();
             }
             else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-                hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); e.preventDefault();
+                if (e.type === 'keydown') startSeek(1);
+                else stopSeek();
+                e.preventDefault();
             }
             else if (e.key === 'ArrowUp') {
                 var pl = getPL(), idx = -1;
@@ -378,6 +399,7 @@
             else if (e.key === 'Delete' && !e.ctrlKey && !e.altKey) { deleteCurrentVideo(); e.preventDefault(); }
         };
         window.addEventListener('keydown', _115Key);
+        window.addEventListener('keyup', _115Key);
 
         // FPS 统计
         var statsEl = document.createElement('div');
