@@ -505,8 +505,6 @@
                 // 派发键盘事件，让现有 keydown 处理器统一处理
                 window.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
             }
-                }
-            }
 
             async function connectHID() {
                 if (!navigator.hid) {
