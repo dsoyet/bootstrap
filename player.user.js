@@ -348,10 +348,13 @@
             cam = document.getElementById('cam');
             autoNext = GM_getValue('vr_auto_next', false);
             cachedPL = getPL();
-            // 延迟再读一次，VM 的 GM 存储可能未就绪
-            setTimeout(function() {
+            // VM 的 GM 存储可能在 WebHID 上下文中不可用，持续轮询同步
+            var plSyncTimer = setInterval(function() {
                 var pl = getPL();
-                if (pl.length > cachedPL.length) { cachedPL = pl; }
+                if (pl.length > 0 && pl.length !== cachedPL.length) {
+                    cachedPL = pl;
+                    console.log('[Player] cachedPL 已同步 len=' + pl.length);
+                }
             }, 1000);
 
             function switchMode(vr) {
