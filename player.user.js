@@ -403,13 +403,13 @@
                     hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
                 }
                 else if (e.key === 'ArrowLeft' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
-                    var pl = getPL(); cachedPL = pl; var idx = -1;
+                    var pl = getPL(); cachedPL = pl; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(pl)); var idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx > 0) navToPL(idx - 1);
                     e.preventDefault();
                 }
                 else if (e.key === 'ArrowRight' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
-                    var pl = getPL(); cachedPL = pl; var idx = -1;
+                    var pl = getPL(); cachedPL = pl; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(pl)); var idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
                     e.preventDefault();
