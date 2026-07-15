@@ -432,21 +432,6 @@
             };
             window.addEventListener('keydown', window._115Key);
 
-            // Media Session API: 遥控器长按快进/快退
-            if ('mediaSession' in navigator) {
-                try {
-                    navigator.mediaSession.setActionHandler('seekbackward', function(details) {
-                        console.log('[Player] MediaSession seekbackward', details);
-                        if (v.duration) { hlsSeek(Math.max(0, v.currentTime - 30)); showProgress(); }
-                    });
-                    navigator.mediaSession.setActionHandler('seekforward', function(details) {
-                        console.log('[Player] MediaSession seekforward', details);
-                        if (v.duration) { hlsSeek(Math.min(v.duration, v.currentTime + 30)); v.muted = false; showProgress(); }
-                    });
-                    console.log('[Player] MediaSession seek handlers 已注册');
-                } catch(e) { console.log('[Player] MediaSession 注册失败:', e); }
-            } else { console.log('[Player] MediaSession 不可用'); }
-
             // Gamepad API: 手柄/VR遥控器按键（上下键不触发浏览器事件）
             var gpState = {}, gpFirstLog = true;
             function pollGamepad() {
