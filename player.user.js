@@ -481,32 +481,34 @@
             var hidSuppressKey = false; // WebHID 处理过的键，抑制 keydown 重复
 
             function handleHIDReport(data) {
-                // Consumer Control 报告: [ReportID, Usage_LO, Usage_HI, ...]
-                var usage = data[1] | (data[2] << 8);
+                // Consumer Control 报告: [Usage_LO, Usage_HI]（无 Report ID）
+                var usage = data[0] | (data[1] << 8);
                 console.log('[Player] 🎮 WebHID raw=' + Array.from(data).map(function(b){return '0x'+b.toString(16).toUpperCase().padStart(2,'0')}).join(' ') + ' usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
+                // 忽略空报告（按键释放）
+                if (usage === 0) return;
                 hidSuppressKey = true;
                 setTimeout(function() { hidSuppressKey = false; }, 100);
 
                 if (!v.duration) return;
 
                 switch (usage) {
-                    case 0x00B5: // FORWARD → 快进 60s
+                    case 0x00B3: // FORWARD → 快进 60s（纯HID，无keydown）
                         hlsSeek(Math.min(v.duration, v.currentTime + 60));
                         v.muted = false;
                         showProgress();
                         break;
-                    case 0x00B6: // REWIND → 快退 60s
+                    case 0x00B4: // REWIND → 快退 60s（纯HID，无keydown）
                         hlsSeek(Math.max(0, v.currentTime - 60));
                         showProgress();
                         break;
-                    case 0x00B3: // NEXT → 下一集
+                    case 0x00B5: // NEXT → 下一集（同时触发keydown MediaTrackNext）
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                             if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
                         })();
                         break;
-                    case 0x00B4: // PREV → 上一集
+                    case 0x00B6: // PREV → 上一集（同时触发keydown MediaTrackPrevious）
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
