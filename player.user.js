@@ -382,6 +382,8 @@
 
             // 键盘：←→15s 空格暂停 S统计，→同时取消静音
             window._115Key = function (e) {
+                // DEBUG: 打印所有按键
+                console.log('[Player] 🔑 keydown key=' + e.key + ' code=' + e.code + ' keyCode=' + e.keyCode + ' hidSuppress=' + hidSuppressKey);
                 // WebHID 已处理的媒体键，抑制 keydown 重复触发
                 if (hidSuppressKey && (e.key === 'MediaTrackNext' || e.key === 'MediaTrackPrevious' ||
                     e.key === 'Next' || e.key === 'NEXT' || e.key === 'Prev' || e.key === 'PREV' ||
@@ -475,7 +477,7 @@
             function handleHIDReport(data) {
                 // Consumer Control 报告: [ReportID, Usage_LO, Usage_HI, ...]
                 var usage = data[1] | (data[2] << 8);
-                console.log('[Player] WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
+                console.log('[Player] 🎮 WebHID raw=' + Array.from(data).map(function(b){return '0x'+b.toString(16).toUpperCase().padStart(2,'0')}).join(' ') + ' usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
                 hidSuppressKey = true;
                 setTimeout(function() { hidSuppressKey = false; }, 100);
 
