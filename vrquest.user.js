@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.5
+// @version      1.6
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
 // @downloadURL   https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
@@ -233,6 +233,12 @@
             '<div id="progress-bar" style="position:fixed;bottom:20px;left:10%;width:80%;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;z-index:10000;display:none"><div id="progress-fill" style="height:100%;background:#1e90ff;border-radius:2px;width:0%"></div></div>' +
             '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10"></div>';
         console.log('[VRQuest] 就绪');
+
+        // 版本水印（Wolvic 无控制台，屏幕显示确认版本）
+        var verEl = document.createElement('div');
+        verEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;color:rgba(255,255,255,0.5);font:11px monospace;pointer-events:none';
+        verEl.textContent = 'VRQuest v1.6 | A-Frame 1.8';
+        document.body.appendChild(verEl);
 
         // 180° SBS UV：取左眼画面
         (function fixUV() {
