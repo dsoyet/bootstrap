@@ -321,7 +321,7 @@
             if (/Oculus|Quest/i.test(navigator.userAgent)) {
                 var scene = document.querySelector('a-scene');
                 if (scene) {
-                    scene.setAttribute('renderer', 'antialias:false;sortObjects:true;physicallyCorrectLights:false;maxCanvasWidth:2048;maxCanvasHeight:2048');
+                    scene.setAttribute('renderer', 'antialias:false;sortObjects:true;maxCanvasWidth:2048;maxCanvasHeight:2048');
                 }
             }
 
