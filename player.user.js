@@ -311,7 +311,7 @@
                 '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10">⏳ 加载中...</div>';
 
             await loadJs('https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js');
-            await loadJs('https://aframe.io/releases/1.6.0/aframe.min.js');
+            await loadJs('https://aframe.io/releases/1.8.0/aframe.min.js');
             console.log('[115Player] 就绪');
 
             // Quest 移动端优化
@@ -473,65 +473,6 @@
             }
             pollGamepad();
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
-
-            // ── WebHID: 蓝牙遥控器 → 转键盘事件 ──
-            var hidDevice = null;
-            var HID_TO_KEY = {
-                0x00B3: 'ArrowRight',  // FORWARD → 快进 60s
-                0x00B4: 'ArrowLeft',   // REWIND  → 快退 60s
-                0x00B5: 'ArrowDown',   // NEXT    → 下一集
-                0x00B6: 'ArrowUp',     // PREV    → 上一集
-                0x00CD: ' ',           // PLAYPAUSE
-                0x0224: 'v'            // HOME → 切换VR/平面
-            };
-
-            function handleHIDReport(data) {
-                var usage = data[0] | (data[1] << 8);
-                console.log('[Player] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
-                if (usage === 0) return;
-                var key = HID_TO_KEY[usage];
-                if (!key) return;
-                window.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
-            }
-
-            function setupHID() {
-                if (!hidDevice) return;
-                hidDevice.addEventListener('inputreport', function(e) {
-                    handleHIDReport(new Uint8Array(e.data.buffer));
-                });
-                hidDevice.addEventListener('disconnect', function() {
-                    console.log('[Player] WebHID 断开');
-                    hidDevice = null;
-                });
-            }
-
-            async function connectHID() {
-                if (!navigator.hid) { console.log('[Player] WebHID 不可用'); return; }
-                try {
-                    var devices = await navigator.hid.getDevices();
-                    if (devices.length > 0) {
-                        hidDevice = devices[0];
-                        await hidDevice.open();
-                        console.log('[Player] WebHID 已连接:', hidDevice.productName);
-                        setupHID();
-                    } else {
-                        console.log('[Player] WebHID 未授权，点击页面触发授权');
-                        showToast('🎮 点击页面连接遥控器');
-                        document.addEventListener('click', function doReq() {
-                            document.removeEventListener('click', doReq);
-                            navigator.hid.requestDevice({ filters: [{ usagePage: 0x0C, usage: 0x01 }] })
-                                .then(function(devs) {
-                                    if (devs.length > 0) { hidDevice = devs[0]; return hidDevice.open(); }
-                                })
-                                .then(function() {
-                                    if (hidDevice) { setupHID(); showToast('✅ 遥控器已连接'); }
-                                })
-                                .catch(function(e) { console.log('[Player] WebHID 授权失败:', e.message); });
-                        }, { once: true });
-                    }
-                } catch(e) { console.log('[Player] WebHID 异常:', e.message); }
-            }
-            connectHID();
 
             // 简易 FPS 统计（S 键切换）
             const statsEl = document.createElement('div');
