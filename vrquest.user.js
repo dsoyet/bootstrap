@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.0
-// @description  115 Cloud：A-Frame 1.8 180° VR Player (Quest optimized, no keyboard)
+// @version      1.1
+// @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @match        https://115.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_openInTab
