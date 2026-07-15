@@ -404,32 +404,55 @@
         window.addEventListener('keydown', _115Key);
         window.addEventListener('keyup', _115Key);
 
-        // Quest 3 手柄按键映射：触发射键盘事件
+        // Quest 3 手柄按键映射：摇杆快进快退，按钮切集/暂停
+        var stickState = { dir: '', active: false };
         var ctrlKeyMap = {
             'triggerdown': ' ',        // 扳机 → 播放/暂停
-            'abuttondown': 'ArrowRight', // A → 快进 (按住开始)
-            'abuttonup': 'ArrowRight',   // A 松开 → 停止快进
-            'bbuttondown': 'ArrowLeft',  // B → 快退 (按住开始)
-            'bbuttonup': 'ArrowLeft',    // B 松开 → 停止快退
-            'xbuttondown': 'ArrowUp',    // X → 上一集
-            'ybuttondown': 'ArrowDown'   // Y → 下一集
+            'abuttondown': 'ArrowDown', // A → 下一集
+            'bbuttondown': 'ArrowUp',   // B → 上一集
         };
         setTimeout(function() {
             var lh = document.getElementById('leftHand');
             var rh = document.getElementById('rightHand');
-            function bind(el) {
+            function bindButtons(el) {
                 if (!el) return;
                 Object.keys(ctrlKeyMap).forEach(function(evt) {
                     el.addEventListener(evt, function() {
-                        var key = ctrlKeyMap[evt];
-                        var type = evt.indexOf('up') > -1 ? 'keyup' : 'keydown';
-                        window.dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true }));
+                        window.dispatchEvent(new KeyboardEvent('keydown', { key: ctrlKeyMap[evt], bubbles: true }));
                     });
                 });
             }
-            bind(lh);
-            bind(rh);
-            console.log('[VRQuest] Quest 3 手柄按键已绑定');
+            bindButtons(lh);
+            bindButtons(rh);
+            // 摇杆方向 → Arrow 键（仅右手）
+            function bindStick(el) {
+                if (!el) return;
+                el.addEventListener('axismove', function(e) {
+                    var x = e.detail.axis[2] || 0; // thumbstick x
+                    var y = e.detail.axis[3] || 0; // thumbstick y
+                    var newDir = '';
+                    if (Math.abs(x) > Math.abs(y)) {
+                        newDir = x > 0.3 ? 'right' : (x < -0.3 ? 'left' : '');
+                    } else {
+                        newDir = y > 0.3 ? 'down' : (y < -0.3 ? 'up' : '');
+                    }
+                    if (newDir !== stickState.dir) {
+                        // 释放旧方向
+                        if (stickState.dir) {
+                            var oldKey = stickState.dir === 'right' ? 'ArrowRight' : stickState.dir === 'left' ? 'ArrowLeft' : stickState.dir === 'up' ? 'ArrowUp' : 'ArrowDown';
+                            window.dispatchEvent(new KeyboardEvent('keyup', { key: oldKey, bubbles: true }));
+                        }
+                        // 按下新方向
+                        if (newDir) {
+                            var newKey = newDir === 'right' ? 'ArrowRight' : newDir === 'left' ? 'ArrowLeft' : newDir === 'up' ? 'ArrowUp' : 'ArrowDown';
+                            window.dispatchEvent(new KeyboardEvent('keydown', { key: newKey, bubbles: true }));
+                        }
+                        stickState.dir = newDir;
+                    }
+                });
+            }
+            bindStick(rh);
+            console.log('[VRQuest] Quest 3 手柄已绑定');
         }, 3000);
 
         // FPS 统计
