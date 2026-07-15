@@ -500,6 +500,20 @@
                         hlsSeek(Math.max(0, v.currentTime - 60));
                         showProgress();
                         break;
+                    case 0x00B5: // NEXT → 下一集
+                        (function() {
+                            var pl = getPL(), idx = -1;
+                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                            if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
+                        })();
+                        break;
+                    case 0x00B6: // PREV → 上一集
+                        (function() {
+                            var pl = getPL(), idx = -1;
+                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                            if (idx > 0) navToPL(idx - 1);
+                        })();
+                        break;
                     case 0x00CD: // PLAYPAUSE
                         v.paused ? v.play() : v.pause();
                         break;
