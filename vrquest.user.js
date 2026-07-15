@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.4
+// @version      1.5
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
 // @downloadURL   https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
@@ -220,7 +220,7 @@
         // 单次注入，不重复破坏 DOM
         document.body.innerHTML =
             `<div id="scene-box" style="width:100vw;height:100vh">
-                <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true">
+                <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true" renderer="stereo:false">
                     <a-assets><video id="vr-src" crossorigin="anonymous" playsinline autoplay muted></video></a-assets>
                     <a-sky id="vr-sphere" src="#vr-src" phi-start="180" phi-length="180" radius="5000"></a-sky>
                     <a-video id="vr-flat" src="#vr-src" width="23" height="12.9375" position="0 0 -7.7" visible="false"></a-video>
