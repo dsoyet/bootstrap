@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.2
+// @version      1.3
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
 // @downloadURL   https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
