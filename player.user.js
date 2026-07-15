@@ -295,6 +295,8 @@
     var isVR = true, vSphere = null, vFlat = null, cam = null;
 
     async function initScene(onReady) {
+            console.log('[Player] 🟢 initScene v5.1 已加载 (WebHID版)');
+
             document.head.innerHTML = '<meta charset="utf-8"><title>VR Player</title>';
             document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden';
             document.body.innerHTML =
@@ -466,7 +468,7 @@
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
 
             // ── WebHID: 蓝牙遥控器 Consumer Control ──
-            // FORWARD/NEXT 和 REWIND/PREV 在 keydown 层合并，需 WebHID 区分
+            console.log('[Player] 🔵 WebHID 模块已加载，navigator.hid=' + (typeof navigator.hid !== 'undefined' ? '可用' : '不可用'));
             var hidDevice = null;
             var hidSuppressKey = false; // WebHID 处理过的键，抑制 keydown 重复
 
