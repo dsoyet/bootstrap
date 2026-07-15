@@ -23,7 +23,7 @@
     function getPL() {
         try { return JSON.parse(GM_getValue(PL_KEY, '[]')); } catch(e) { return []; }
     }
-    function savePL(list) { GM_setValue(PL_KEY, JSON.stringify(list)); }
+    function savePL(list) { cachedPL = list; GM_setValue(PL_KEY, JSON.stringify(list)); }
     function addToPL(pickcode, name, cid) {
         var list = getPL();
         list = list.filter(function(x) { return x.pickcode !== pickcode; });
@@ -68,6 +68,7 @@
     // ── 全局状态 ──
     var curPid = null, curFileId = null, curParentId = null, autoNext = false, hls = null, v = null;
     var isVR = true, vSphere = null, vFlat = null, cam = null;
+    var cachedPL = []; // WebHID 回调中 GM_getValue 不可用，用缓存
 
     if (location.pathname === '/web/lixian/' && location.search.includes('pickcode=')) {
         const pid = new URL(location.href).searchParams.get('pickcode');
@@ -295,8 +296,6 @@
     var isVR = true, vSphere = null, vFlat = null, cam = null;
 
     async function initScene(onReady) {
-            console.log('[Player] 🟢 initScene v5.1 已加载 (WebHID版)');
-
             document.head.innerHTML = '<meta charset="utf-8"><title>VR Player</title>';
             document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden';
             document.body.innerHTML =
@@ -348,6 +347,12 @@
             vFlat = document.getElementById('vr-flat');
             cam = document.getElementById('cam');
             autoNext = GM_getValue('vr_auto_next', false);
+            cachedPL = getPL();
+            // 延迟再读一次，VM 的 GM 存储可能未就绪
+            setTimeout(function() {
+                var pl = getPL();
+                if (pl.length > cachedPL.length) { cachedPL = pl; }
+            }, 1000);
 
             function switchMode(vr) {
                 isVR = vr;
@@ -386,28 +391,28 @@
                 progTimer = setTimeout(() => { progBar.style.display = 'none'; }, 2000);
             }
 
-            // 键盘：←→ 快进快退，↑↓ 切换视频，空格暂停，遥控器 NEXT/PREV=切换视频
+            // 键盘：↑↓ 快进快退，←→ 切换视频，空格暂停
             window._115Key = function (e) {
                 if (!v.duration) return;
-                if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-                    hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
-                }
-                else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                if (e.key === 'ArrowUp' || e.key === 'PageUp') {
                     hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); e.preventDefault();
                 }
-                else if (e.key === 'ArrowUp' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
-                    var pl = getPL(), idx = -1;
+                else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                    hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
+                }
+                else if (e.key === 'ArrowLeft' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
+                    var pl = getPL(); cachedPL = pl; var idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx > 0) navToPL(idx - 1);
                     e.preventDefault();
                 }
-                else if (e.key === 'ArrowDown' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
-                    var pl = getPL(), idx = -1;
+                else if (e.key === 'ArrowRight' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
+                    var pl = getPL(); cachedPL = pl; var idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
                     e.preventDefault();
                 }
-                // 遥控器 NEXT/PREV → 切换视频（不通过WebHID，避免双重触发）
+                // 遥控器 NEXT/PREV → 切换视频
                 else if (e.key === 'MediaTrackPrevious') {
                     var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
@@ -480,20 +485,17 @@
             pollGamepad();
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
 
-            // ── WebHID: 蓝牙遥控器 Consumer Control（仅 FORWARD/REWIND）──
-            console.log('[Player] 🔵 WebHID 模块已加载，navigator.hid=' + (typeof navigator.hid !== 'undefined' ? '可用' : '不可用'));
+            // ── WebHID: 蓝牙遥控器 Consumer Control ──
             var hidDevice = null;
 
             function handleHIDReport(data) {
                 var usage = data[0] | (data[1] << 8);
-                console.log('[Player] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
                 if (usage === 0) return;
-                if (!v || !v.duration) { console.log('[Player] WebHID 忽略（视频未就绪）'); return; }
+                if (!v || !v.duration) return;
 
                 switch (usage) {
                     case 0x00B3: // FORWARD → 快进 60s
                         hlsSeek(Math.min(v.duration, v.currentTime + 60));
-                        v.muted = false;
                         showProgress();
                         break;
                     case 0x00B4: // REWIND → 快退 60s
@@ -501,22 +503,16 @@
                         showProgress();
                         break;
                     case 0x00B5: // NEXT → 下一集
-                        (function() {
-                            var pl = getPL(), idx = -1;
-                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            console.log('[Player] NEXT: plLen=' + pl.length + ' curIdx=' + idx + ' curPid=' + curPid);
-                            if (idx >= 0 && idx < pl.length - 1) { navToPL(idx + 1); }
-                            else { showToast(idx < 0 ? '⚠ 当前视频不在播放列表' : '⚠ 已是最后一集'); }
-                        })();
+                        var idx5 = -1;
+                        for (var i5 = 0; i5 < cachedPL.length; i5++) { if (cachedPL[i5].pickcode === curPid) { idx5 = i5; break; } }
+                        if (idx5 >= 0 && idx5 < cachedPL.length - 1) navToPL(idx5 + 1);
+                        else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
                         break;
                     case 0x00B6: // PREV → 上一集
-                        (function() {
-                            var pl = getPL(), idx = -1;
-                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            console.log('[Player] PREV: plLen=' + pl.length + ' curIdx=' + idx + ' curPid=' + curPid);
-                            if (idx > 0) { navToPL(idx - 1); }
-                            else { showToast(idx < 0 ? '⚠ 当前视频不在播放列表' : '⚠ 已是第一集'); }
-                        })();
+                        var idx6 = -1;
+                        for (var i6 = 0; i6 < cachedPL.length; i6++) { if (cachedPL[i6].pickcode === curPid) { idx6 = i6; break; } }
+                        if (idx6 > 0) navToPL(idx6 - 1);
+                        else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
                         break;
                     case 0x00CD: // PLAYPAUSE
                         v.paused ? v.play() : v.pause();
@@ -905,7 +901,7 @@
             w.style.cssText = 'margin-right:6px';
             w.innerHTML = `<a data-pid="${pid}" style="color:#ff6b35;font-weight:bold;text-decoration:none;font-size:12px;cursor:pointer" class="btn-115-vr">🥽VR</a>`;
             area.insertBefore(w, area.firstChild);
-            w.querySelector('.btn-115-vr').onclick = function (e) { e.stopPropagation(); e.preventDefault(); savePL([]); GM_openInTab('https://115.com/web/lixian/?pickcode=' + pid, false); };
+            w.querySelector('.btn-115-vr').onclick = function (e) { e.stopPropagation(); e.preventDefault(); addToPL(pid, pid, ''); GM_openInTab('https://115.com/web/lixian/?pickcode=' + pid, false); };
         });
         if (n > 0) { console.log('[115Player] ✅', n, '个按钮'); n = 0; }
     }, 2000);
