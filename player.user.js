@@ -402,7 +402,7 @@
                 else if (e.key === 'Enter') {
                     deleteCurrentVideo(); e.preventDefault();
                 }
-                else if (e.key === ' ') { v.paused ? v.play() : v.pause(); e.preventDefault(); }
+                else if (e.key === ' ' || e.key === 'MediaPlayPause') { v.paused ? v.play() : v.pause(); e.preventDefault(); }
                 else if (e.key === 'v' && !e.ctrlKey && !e.altKey) { switchMode(!isVR); }
                 else if (e.key === 'a' && !e.ctrlKey && !e.altKey) {
                     autoNext = !autoNext;
@@ -473,6 +473,118 @@
             }
             pollGamepad();
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
+
+            // ── WebHID: 蓝牙遥控器 Consumer Control ──
+            // FORWARD/NEXT 和 REWIND/PREV 在 keydown 层合并，需 WebHID 区分
+            var hidDevice = null;
+            var hidSuppressKey = false; // WebHID 处理过的键，抑制 keydown 重复
+
+            function handleHIDReport(data) {
+                // Consumer Control 报告: [ReportID, Usage_LO, Usage_HI, ...]
+                var usage = data[1] | (data[2] << 8);
+                console.log('[Player] WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
+                hidSuppressKey = true;
+                setTimeout(function() { hidSuppressKey = false; }, 100);
+
+                if (!v.duration) return;
+
+                switch (usage) {
+                    case 0x00B3: // FORWARD → 快进 60s
+                        hlsSeek(Math.min(v.duration, v.currentTime + 60));
+                        v.muted = false;
+                        showProgress();
+                        break;
+                    case 0x00B4: // REWIND → 快退 60s
+                        hlsSeek(Math.max(0, v.currentTime - 60));
+                        showProgress();
+                        break;
+                    case 0x00B5: // NEXT → 下一集
+                        (function() {
+                            var pl = getPL(), idx = -1;
+                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                            if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
+                        })();
+                        break;
+                    case 0x00B6: // PREV → 上一集
+                        (function() {
+                            var pl = getPL(), idx = -1;
+                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                            if (idx > 0) navToPL(idx - 1);
+                        })();
+                        break;
+                    case 0x00CD: // PLAYPAUSE
+                        v.paused ? v.play() : v.pause();
+                        break;
+                    case 0x0224: // HOME → 切换VR/平面
+                        switchMode(!isVR);
+                        break;
+                }
+            }
+
+            async function connectHID() {
+                if (!navigator.hid) {
+                    console.log('[Player] WebHID 不可用（非Chromium或非HTTPS）');
+                    return;
+                }
+                try {
+                    // 先尝试获取已授权的设备
+                    var devices = await navigator.hid.getDevices();
+                    if (devices.length > 0) {
+                        hidDevice = devices[0];
+                        await hidDevice.open();
+                        console.log('[Player] WebHID 已连接:', hidDevice.productName);
+                    } else {
+                        // 需要用户手动授权 — 在页面上显示提示
+                        console.log('[Player] WebHID 未授权，点击页面任意位置触发授权');
+                        showToast('🎮 点击页面任意位置连接遥控器');
+                        var doRequest = async function() {
+                            document.removeEventListener('click', doRequest);
+                            try {
+                                var newDevices = await navigator.hid.requestDevice({
+                                    filters: [{ usagePage: 0x0C, usage: 0x01 }]
+                                });
+                                if (newDevices.length > 0) {
+                                    hidDevice = newDevices[0];
+                                    await hidDevice.open();
+                                    console.log('[Player] WebHID 已连接:', hidDevice.productName);
+                                    showToast('✅ 遥控器已连接');
+                                }
+                            } catch(e) {
+                                console.log('[Player] WebHID 授权取消或失败:', e.message);
+                            }
+                        };
+                        document.addEventListener('click', doRequest, { once: true });
+                    }
+                    if (hidDevice) {
+                        hidDevice.addEventListener('inputreport', function(e) {
+                            handleHIDReport(new Uint8Array(e.data.buffer));
+                        });
+                        hidDevice.addEventListener('disconnect', function() {
+                            console.log('[Player] WebHID 断开');
+                            hidDevice = null;
+                            showToast('🔌 遥控器已断开');
+                        });
+                    }
+                } catch(e) {
+                    console.log('[Player] WebHID 连接异常:', e.message);
+                }
+            }
+            connectHID();
+
+            // 修改 keydown: WebHID 已处理的键不再重复触发
+            var _origKey = window._115Key;
+            window._115Key = function(e) {
+                if (hidSuppressKey && (e.key === 'MediaTrackNext' || e.key === 'MediaTrackPrevious' ||
+                    e.key === 'Next' || e.key === 'NEXT' || e.key === 'Prev' || e.key === 'PREV')) {
+                    console.log('[Player] keydown 由 WebHID 抑制:', e.key);
+                    return;
+                }
+                // MediaPlayPause 也由 WebHID 处理时抑制空格
+                if (hidSuppressKey && e.key === 'MediaPlayPause') {
+                    return;
+                }
+                _origKey(e);
+            };
 
             // 简易 FPS 统计（S 键切换）
             const statsEl = document.createElement('div');
