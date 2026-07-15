@@ -313,7 +313,8 @@
                     </a-scene>
                 </div>` +
                 '<div id="sub-overlay" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:99999999;pointer-events:none;display:none;text-align:center;max-width:90%"><span style="color:#fff;font-size:26px;font-weight:bold;display:inline-block;line-height:1.5;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 8px #000,0 0 16px #000"></span></div>' +
-                '<div id="progress-bar" style="position:fixed;bottom:20px;left:10%;width:80%;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;z-index:10000;display:none"><div id="progress-fill" style="height:100%;background:#1e90ff;border-radius:2px;width:0%"></div></div>';
+                '<div id="progress-bar" style="position:fixed;bottom:20px;left:10%;width:80%;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;z-index:10000;display:none"><div id="progress-fill" style="height:100%;background:#1e90ff;border-radius:2px;width:0%"></div></div>' +
+                '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10"></div>';
             console.log('[115Player] 就绪');
 
             // Quest 移动端优化
