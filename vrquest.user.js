@@ -213,16 +213,15 @@
         document.head.innerHTML = '<meta charset="utf-8"><title>VR Player</title>';
         document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden';
 
-        // A-Frame 1.8 要求 DOM 里没有 a-scene 时加载
-        document.body.innerHTML = '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10">⏳ 加载中...</div>';
+        // 先加载库，DOM 里没有 a-scene（1.8 要求）
         await loadJs('https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js');
         await loadJs('https://aframe.io/releases/1.8.0/aframe.min.js');
 
-        // 在 A-Frame 加载后再注入场景 HTML
+        // 单次注入，不重复破坏 DOM
         document.body.innerHTML =
             `<div id="scene-box" style="width:100vw;height:100vh">
                 <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true">
-                    <a-assets><video id="vr-src" crossorigin="anonymous" playsinline autoplay muted loop></video></a-assets>
+                    <a-assets><video id="vr-src" crossorigin="anonymous" playsinline autoplay muted></video></a-assets>
                     <a-sky id="vr-sphere" src="#vr-src" phi-start="180" phi-length="180" radius="5000"></a-sky>
                     <a-video id="vr-flat" src="#vr-src" width="23" height="12.9375" position="0 0 -7.7" visible="false"></a-video>
                     <a-camera id="cam" position="0 0 0" wasd-controls="acceleration:50" look-controls="reverseMouseDrag:true"></a-camera>
