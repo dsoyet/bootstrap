@@ -386,21 +386,13 @@
                 progTimer = setTimeout(() => { progBar.style.display = 'none'; }, 2000);
             }
 
-            // 键盘：←→15s 空格暂停 S统计，→同时取消静音
+            // 键盘：←→ 快进快退，↑↓ 切换视频，空格暂停，遥控器 NEXT/PREV=切换视频
             window._115Key = function (e) {
-                // DEBUG: 打印所有按键
-                console.log('[Player] 🔑 keydown key=' + e.key + ' code=' + e.code + ' keyCode=' + e.keyCode + ' hidSuppress=' + hidSuppressKey);
-                // WebHID 已处理的媒体键，抑制 keydown 重复触发
-                if (hidSuppressKey && (e.key === 'MediaTrackNext' || e.key === 'MediaTrackPrevious' ||
-                    e.key === 'Next' || e.key === 'NEXT' || e.key === 'Prev' || e.key === 'PREV' ||
-                    e.key === 'MediaPlayPause')) {
-                    return;
-                }
                 if (!v.duration) return;
-                if (e.key === 'ArrowLeft' || e.key === 'MediaTrackPrevious' || e.key === 'Prev' || e.key === 'PREV' || e.key === 'PageUp') {
+                if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
                     hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
                 }
-                else if (e.key === 'ArrowRight' || e.key === 'MediaTrackNext' || e.key === 'Next' || e.key === 'NEXT' || e.key === 'PageDown') {
+                else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
                     hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); e.preventDefault();
                 }
                 else if (e.key === 'ArrowUp' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
@@ -410,6 +402,19 @@
                     e.preventDefault();
                 }
                 else if (e.key === 'ArrowDown' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
+                    var pl = getPL(), idx = -1;
+                    for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                    if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
+                    e.preventDefault();
+                }
+                // 遥控器 NEXT/PREV → 切换视频（不通过WebHID，避免双重触发）
+                else if (e.key === 'MediaTrackPrevious') {
+                    var pl = getPL(), idx = -1;
+                    for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
+                    if (idx > 0) navToPL(idx - 1);
+                    e.preventDefault();
+                }
+                else if (e.key === 'MediaTrackNext') {
                     var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
@@ -475,45 +480,25 @@
             pollGamepad();
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
 
-            // ── WebHID: 蓝牙遥控器 Consumer Control ──
+            // ── WebHID: 蓝牙遥控器 Consumer Control（仅 FORWARD/REWIND）──
             console.log('[Player] 🔵 WebHID 模块已加载，navigator.hid=' + (typeof navigator.hid !== 'undefined' ? '可用' : '不可用'));
             var hidDevice = null;
-            var hidSuppressKey = false; // WebHID 处理过的键，抑制 keydown 重复
 
             function handleHIDReport(data) {
-                // Consumer Control 报告: [Usage_LO, Usage_HI]（无 Report ID）
                 var usage = data[0] | (data[1] << 8);
-                console.log('[Player] 🎮 WebHID raw=' + Array.from(data).map(function(b){return '0x'+b.toString(16).toUpperCase().padStart(2,'0')}).join(' ') + ' usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
-                // 忽略空报告（按键释放）
+                console.log('[Player] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
                 if (usage === 0) return;
-                hidSuppressKey = true;
-                setTimeout(function() { hidSuppressKey = false; }, 100);
-
-                if (!v.duration) return;
+                if (!v || !v.duration) { console.log('[Player] WebHID 忽略（视频未就绪）'); return; }
 
                 switch (usage) {
-                    case 0x00B3: // FORWARD → 快进 60s（纯HID，无keydown）
+                    case 0x00B3: // FORWARD → 快进 60s
                         hlsSeek(Math.min(v.duration, v.currentTime + 60));
                         v.muted = false;
                         showProgress();
                         break;
-                    case 0x00B4: // REWIND → 快退 60s（纯HID，无keydown）
+                    case 0x00B4: // REWIND → 快退 60s
                         hlsSeek(Math.max(0, v.currentTime - 60));
                         showProgress();
-                        break;
-                    case 0x00B5: // NEXT → 下一集（同时触发keydown MediaTrackNext）
-                        (function() {
-                            var pl = getPL(), idx = -1;
-                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
-                        })();
-                        break;
-                    case 0x00B6: // PREV → 上一集（同时触发keydown MediaTrackPrevious）
-                        (function() {
-                            var pl = getPL(), idx = -1;
-                            for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            if (idx > 0) navToPL(idx - 1);
-                        })();
                         break;
                     case 0x00CD: // PLAYPAUSE
                         v.paused ? v.play() : v.pause();
