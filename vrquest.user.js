@@ -292,12 +292,18 @@
             0x0224: 'v'            // HOME → 切换VR/平面
         };
 
+        var lastKey = null;
         function handleHIDReport(data) {
             var usage = data[0] | (data[1] << 8);
             console.log('[VRQuest] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
-            if (usage === 0) return;
+            if (usage === 0) {
+                // 按键释放
+                if (lastKey) { window.dispatchEvent(new KeyboardEvent('keyup', { key: lastKey, bubbles: true })); lastKey = null; }
+                return;
+            }
             var key = HID_TO_KEY[usage];
             if (!key) return;
+            lastKey = key;
             window.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
         }
 
