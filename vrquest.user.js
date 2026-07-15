@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.3
+// @version      1.4
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
 // @downloadURL   https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
@@ -258,12 +258,16 @@
         autoNext = GM_getValue('vr_auto_next', false);
 
         // 修复 WebXR 双眼交替渲染导致的视频纹理闪烁
-        v.addEventListener('timeupdate', function() {
+        // timeupdate 可能在左右眼渲染之间触发，改用每帧强制刷新
+        function forceTexUpdate() {
+            if (!vSphere) { requestAnimationFrame(forceTexUpdate); return; }
             var mesh = vSphere.getObject3D('mesh');
             if (mesh && mesh.material && mesh.material.map) {
                 mesh.material.map.needsUpdate = true;
             }
-        });
+            requestAnimationFrame(forceTexUpdate);
+        }
+        requestAnimationFrame(forceTexUpdate);
 
         function switchMode(vr) {
             isVR = vr;
