@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Player
 // @namespace    https://greasyfork.org/
-// @version      5.1
+// @version      5.0
 // @description  115 Cloud：A-Frame 180° VR Player
 // @match        https://115.com/*
 // @grant        GM_xmlhttpRequest
@@ -18,19 +18,12 @@
 (function () {
     'use strict';
 
-    // ── 播放列表存储（localStorage，WebHID 回调中 GM API 不可用）──
+    // ── 播放列表存储 ──
     const PL_KEY = 'vr_playlist';
     function getPL() {
-        try {
-            var raw = localStorage.getItem('vr_pl_' + PL_KEY);
-            if (raw) return JSON.parse(raw);
-            // 兼容旧 GM 存储
-            raw = GM_getValue(PL_KEY, null);
-            if (raw) { var pl = JSON.parse(raw); savePL(pl); return pl; }
-        } catch(e) {}
-        return [];
+        try { return JSON.parse(GM_getValue(PL_KEY, '[]')); } catch(e) { return []; }
     }
-    function savePL(list) { localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(list)); }
+    function savePL(list) { GM_setValue(PL_KEY, JSON.stringify(list)); }
     function addToPL(pickcode, name, cid) {
         var list = getPL();
         list = list.filter(function(x) { return x.pickcode !== pickcode; });
@@ -331,21 +324,15 @@
 
             // 180° SBS UV：取左眼画面
             (function fixUV() {
-                try {
-                    const sphere = document.getElementById('vr-sphere');
-                    const mesh = sphere.getObject3D('mesh');
-                    if (!mesh) { sphere.addEventListener('loaded', fixUV); return; }
-                    const uv = mesh.geometry.attributes.uv;
-                    if (!uv) return;
-                    for (let i = 0; i < uv.count; i++) {
-                        uv.setX(i, uv.getX(i) * 0.5);
-                    }
-                    uv.needsUpdate = true;
-                } catch(e) {
-                    console.log('[Player] fixUV 推迟（A-Frame 未就绪）', e.message);
-                    var sphere = document.getElementById('vr-sphere');
-                    if (sphere) sphere.addEventListener('loaded', fixUV);
+                const sphere = document.getElementById('vr-sphere');
+                const mesh = sphere.getObject3D('mesh');
+                if (!mesh) { sphere.addEventListener('loaded', fixUV); return; }
+                const uv = mesh.geometry.attributes.uv;
+                if (!uv) return;
+                for (let i = 0; i < uv.count; i++) {
+                    uv.setX(i, uv.getX(i) * 0.5);
                 }
+                uv.needsUpdate = true;
             })();
 
             v = document.getElementById('vr-src');
@@ -391,35 +378,22 @@
                 progTimer = setTimeout(() => { progBar.style.display = 'none'; }, 2000);
             }
 
-            // 键盘：↑↓ 快进快退，←→ 切换视频，空格暂停
+            // 键盘：←→15s 空格暂停 S统计，→同时取消静音
             window._115Key = function (e) {
                 if (!v.duration) return;
-                if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-                    hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); e.preventDefault();
-                }
-                else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                if (e.key === 'ArrowLeft' || e.key === 'MediaTrackPrevious' || e.key === 'Prev' || e.key === 'PREV' || e.key === 'PageUp') {
                     hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
                 }
-                else if (e.key === 'ArrowLeft' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
+                else if (e.key === 'ArrowRight' || e.key === 'MediaTrackNext' || e.key === 'Next' || e.key === 'NEXT' || e.key === 'PageDown') {
+                    hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); e.preventDefault();
+                }
+                else if (e.key === 'ArrowUp' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
                     var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx > 0) navToPL(idx - 1);
                     e.preventDefault();
                 }
-                else if (e.key === 'ArrowRight' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
-                    var pl = getPL(), idx = -1;
-                    for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                    if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
-                    e.preventDefault();
-                }
-                // 遥控器 NEXT/PREV → 切换视频
-                else if (e.key === 'MediaTrackPrevious') {
-                    var pl = getPL(), idx = -1;
-                    for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                    if (idx > 0) navToPL(idx - 1);
-                    e.preventDefault();
-                }
-                else if (e.key === 'MediaTrackNext') {
+                else if (e.key === 'ArrowDown' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
                     var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
@@ -428,7 +402,7 @@
                 else if (e.key === 'Enter') {
                     deleteCurrentVideo(); e.preventDefault();
                 }
-                else if (e.key === ' ' || e.key === 'MediaPlayPause') { v.paused ? v.play() : v.pause(); e.preventDefault(); }
+                else if (e.key === ' ') { v.paused ? v.play() : v.pause(); e.preventDefault(); }
                 else if (e.key === 'v' && !e.ctrlKey && !e.altKey) { switchMode(!isVR); }
                 else if (e.key === 'a' && !e.ctrlKey && !e.altKey) {
                     autoNext = !autoNext;
@@ -451,6 +425,21 @@
                 }
             };
             window.addEventListener('keydown', window._115Key);
+
+            // Media Session API: 遥控器前进/后退（浏览器不触发 keydown）
+            if ('mediaSession' in navigator) {
+                try {
+                    navigator.mediaSession.setActionHandler('seekbackward', function(details) {
+                        console.log('[Player] MediaSession seekbackward', details);
+                        if (v.duration) { hlsSeek(Math.max(0, v.currentTime - 30)); showProgress(); }
+                    });
+                    navigator.mediaSession.setActionHandler('seekforward', function(details) {
+                        console.log('[Player] MediaSession seekforward', details);
+                        if (v.duration) { hlsSeek(Math.min(v.duration, v.currentTime + 30)); v.muted = false; showProgress(); }
+                    });
+                    console.log('[Player] MediaSession seek handlers 已注册');
+                } catch(e) { console.log('[Player] MediaSession 注册失败:', e); }
+            } else { console.log('[Player] MediaSession 不可用'); }
 
             // Gamepad API: 手柄/VR遥控器按键（上下键不触发浏览器事件）
             var gpState = {}, gpFirstLog = true;
@@ -488,10 +477,10 @@
             // ── WebHID: 蓝牙遥控器 → 转键盘事件 ──
             var hidDevice = null;
             var HID_TO_KEY = {
-                0x00B3: 'ArrowUp',     // FORWARD → 快进
-                0x00B4: 'ArrowDown',   // REWIND  → 快退
-                0x00B5: 'ArrowRight',  // NEXT    → 下一集
-                0x00B6: 'ArrowLeft',   // PREV    → 上一集
+                0x00B3: 'ArrowRight',  // FORWARD → 快进 60s
+                0x00B4: 'ArrowLeft',   // REWIND  → 快退 60s
+                0x00B5: 'ArrowDown',   // NEXT    → 下一集
+                0x00B6: 'ArrowUp',     // PREV    → 上一集
                 0x00CD: ' ',           // PLAYPAUSE
                 0x0224: 'v'            // HOME → 切换VR/平面
             };
@@ -502,49 +491,7 @@
                 if (usage === 0) return;
                 var key = HID_TO_KEY[usage];
                 if (!key) return;
-                // 派发键盘事件，让现有 keydown 处理器统一处理
                 window.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
-            }
-
-            async function connectHID() {
-                if (!navigator.hid) {
-                    console.log('[Player] WebHID 不可用（非Chromium或非HTTPS）');
-                    return;
-                }
-                try {
-                    // 先尝试获取已授权的设备
-                    var devices = await navigator.hid.getDevices();
-                    if (devices.length > 0) {
-                        hidDevice = devices[0];
-                        await hidDevice.open();
-                        console.log('[Player] WebHID 已连接:', hidDevice.productName);
-                        setupHID();
-                    } else {
-                        // 需要用户手动授权
-                        console.log('[Player] WebHID 未授权，点击页面任意位置触发授权');
-                        showToast('🎮 点击页面任意位置连接遥控器');
-                        var doRequest = async function() {
-                            document.removeEventListener('click', doRequest);
-                            try {
-                                var newDevices = await navigator.hid.requestDevice({
-                                    filters: [{ usagePage: 0x0C, usage: 0x01 }]
-                                });
-                                if (newDevices.length > 0) {
-                                    hidDevice = newDevices[0];
-                                    await hidDevice.open();
-                                    console.log('[Player] WebHID 已连接:', hidDevice.productName);
-                                    showToast('✅ 遥控器已连接');
-                                    setupHID();
-                                }
-                            } catch(e) {
-                                console.log('[Player] WebHID 授权取消或失败:', e.message);
-                            }
-                        };
-                        document.addEventListener('click', doRequest, { once: true });
-                    }
-                } catch(e) {
-                    console.log('[Player] WebHID 连接异常:', e.message);
-                }
             }
 
             function setupHID() {
@@ -555,11 +502,35 @@
                 hidDevice.addEventListener('disconnect', function() {
                     console.log('[Player] WebHID 断开');
                     hidDevice = null;
-                    showToast('🔌 遥控器已断开');
                 });
-                console.log('[Player] WebHID 事件监听已就绪');
             }
 
+            async function connectHID() {
+                if (!navigator.hid) { console.log('[Player] WebHID 不可用'); return; }
+                try {
+                    var devices = await navigator.hid.getDevices();
+                    if (devices.length > 0) {
+                        hidDevice = devices[0];
+                        await hidDevice.open();
+                        console.log('[Player] WebHID 已连接:', hidDevice.productName);
+                        setupHID();
+                    } else {
+                        console.log('[Player] WebHID 未授权，点击页面触发授权');
+                        showToast('🎮 点击页面连接遥控器');
+                        document.addEventListener('click', function doReq() {
+                            document.removeEventListener('click', doReq);
+                            navigator.hid.requestDevice({ filters: [{ usagePage: 0x0C, usage: 0x01 }] })
+                                .then(function(devs) {
+                                    if (devs.length > 0) { hidDevice = devs[0]; return hidDevice.open(); }
+                                })
+                                .then(function() {
+                                    if (hidDevice) { setupHID(); showToast('✅ 遥控器已连接'); }
+                                })
+                                .catch(function(e) { console.log('[Player] WebHID 授权失败:', e.message); });
+                        }, { once: true });
+                    }
+                } catch(e) { console.log('[Player] WebHID 异常:', e.message); }
+            }
             connectHID();
 
             // 简易 FPS 统计（S 键切换）
@@ -884,7 +855,7 @@
             w.style.cssText = 'margin-right:6px';
             w.innerHTML = `<a data-pid="${pid}" style="color:#ff6b35;font-weight:bold;text-decoration:none;font-size:12px;cursor:pointer" class="btn-115-vr">🥽VR</a>`;
             area.insertBefore(w, area.firstChild);
-            w.querySelector('.btn-115-vr').onclick = function (e) { e.stopPropagation(); e.preventDefault(); addToPL(pid, pid, ''); GM_openInTab('https://115.com/web/lixian/?pickcode=' + pid, false); };
+            w.querySelector('.btn-115-vr').onclick = function (e) { e.stopPropagation(); e.preventDefault(); savePL([]); GM_openInTab('https://115.com/web/lixian/?pickcode=' + pid, false); };
         });
         if (n > 0) { console.log('[115Player] ✅', n, '个按钮'); n = 0; }
     }, 2000);
