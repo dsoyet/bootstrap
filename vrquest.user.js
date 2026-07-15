@@ -343,7 +343,7 @@
             seekDir = dir;
             function tick() {
                 if (!v.duration || seekDir === 0) { stopSeek(); return; }
-                if (seekDir > 0) { hlsSeek(Math.min(v.duration, v.currentTime + 60)); }
+                if (seekDir > 0) { v.muted = false; hlsSeek(Math.min(v.duration, v.currentTime + 60)); }
                 else { hlsSeek(Math.max(0, v.currentTime - 60)); }
                 showProgress();
                 seekTimer = setTimeout(tick, 150);
