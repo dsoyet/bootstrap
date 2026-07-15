@@ -404,6 +404,34 @@
         window.addEventListener('keydown', _115Key);
         window.addEventListener('keyup', _115Key);
 
+        // Quest 3 手柄按键映射：触发射键盘事件
+        var ctrlKeyMap = {
+            'triggerdown': ' ',        // 扳机 → 播放/暂停
+            'abuttondown': 'ArrowRight', // A → 快进 (按住开始)
+            'abuttonup': 'ArrowRight',   // A 松开 → 停止快进
+            'bbuttondown': 'ArrowLeft',  // B → 快退 (按住开始)
+            'bbuttonup': 'ArrowLeft',    // B 松开 → 停止快退
+            'xbuttondown': 'ArrowUp',    // X → 上一集
+            'ybuttondown': 'ArrowDown'   // Y → 下一集
+        };
+        setTimeout(function() {
+            var lh = document.getElementById('leftHand');
+            var rh = document.getElementById('rightHand');
+            function bind(el) {
+                if (!el) return;
+                Object.keys(ctrlKeyMap).forEach(function(evt) {
+                    el.addEventListener(evt, function() {
+                        var key = ctrlKeyMap[evt];
+                        var type = evt.indexOf('up') > -1 ? 'keyup' : 'keydown';
+                        window.dispatchEvent(new KeyboardEvent(type, { key: key, bubbles: true }));
+                    });
+                });
+            }
+            bind(lh);
+            bind(rh);
+            console.log('[VRQuest] Quest 3 手柄按键已绑定');
+        }, 3000);
+
         // FPS 统计
         var statsEl = document.createElement('div');
         statsEl.id = 'stats';
