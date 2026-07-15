@@ -504,14 +504,18 @@
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
+                            console.log('[Player] NEXT: plLen=' + pl.length + ' curIdx=' + idx + ' curPid=' + curPid);
+                            if (idx >= 0 && idx < pl.length - 1) { navToPL(idx + 1); }
+                            else { showToast(idx < 0 ? '⚠ 当前视频不在播放列表' : '⚠ 已是最后一集'); }
                         })();
                         break;
                     case 0x00B6: // PREV → 上一集
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
-                            if (idx > 0) navToPL(idx - 1);
+                            console.log('[Player] PREV: plLen=' + pl.length + ' curIdx=' + idx + ' curPid=' + curPid);
+                            if (idx > 0) { navToPL(idx - 1); }
+                            else { showToast(idx < 0 ? '⚠ 当前视频不在播放列表' : '⚠ 已是第一集'); }
                         })();
                         break;
                     case 0x00CD: // PLAYPAUSE
