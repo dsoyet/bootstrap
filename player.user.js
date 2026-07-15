@@ -18,12 +18,19 @@
 (function () {
     'use strict';
 
-    // ── 播放列表存储 ──
+    // ── 播放列表存储（localStorage，WebHID 回调中 GM API 不可用）──
     const PL_KEY = 'vr_playlist';
     function getPL() {
-        try { return JSON.parse(GM_getValue(PL_KEY, '[]')); } catch(e) { return []; }
+        try {
+            var raw = localStorage.getItem('vr_pl_' + PL_KEY);
+            if (raw) return JSON.parse(raw);
+            // 兼容旧 GM 存储
+            raw = GM_getValue(PL_KEY, null);
+            if (raw) { var pl = JSON.parse(raw); savePL(pl); return pl; }
+        } catch(e) {}
+        return [];
     }
-    function savePL(list) { cachedPL = list; GM_setValue(PL_KEY, JSON.stringify(list)); }
+    function savePL(list) { cachedPL = list; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(list)); }
     function addToPL(pickcode, name, cid) {
         var list = getPL();
         list = list.filter(function(x) { return x.pickcode !== pickcode; });
@@ -348,14 +355,6 @@
             cam = document.getElementById('cam');
             autoNext = GM_getValue('vr_auto_next', false);
             cachedPL = getPL();
-            // VM 的 GM 存储可能在 WebHID 上下文中不可用，持续轮询同步
-            var plSyncTimer = setInterval(function() {
-                var pl = getPL();
-                if (pl.length > 0 && pl.length !== cachedPL.length) {
-                    cachedPL = pl;
-                    console.log('[Player] cachedPL 已同步 len=' + pl.length);
-                }
-            }, 1000);
 
             function switchMode(vr) {
                 isVR = vr;
@@ -506,12 +505,20 @@
                         showProgress();
                         break;
                     case 0x00B5: // NEXT → 下一集
+                        try {
+                            var ls5 = JSON.parse(localStorage.getItem('vr_pl_' + PL_KEY) || '[]');
+                            if (ls5.length > cachedPL.length) cachedPL = ls5;
+                        } catch(e) {}
                         var idx5 = -1;
                         for (var i5 = 0; i5 < cachedPL.length; i5++) { if (cachedPL[i5].pickcode === curPid) { idx5 = i5; break; } }
                         if (idx5 >= 0 && idx5 < cachedPL.length - 1) navToPL(idx5 + 1);
                         else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
                         break;
                     case 0x00B6: // PREV → 上一集
+                        try {
+                            var ls6 = JSON.parse(localStorage.getItem('vr_pl_' + PL_KEY) || '[]');
+                            if (ls6.length > cachedPL.length) cachedPL = ls6;
+                        } catch(e) {}
                         var idx6 = -1;
                         for (var i6 = 0; i6 < cachedPL.length; i6++) { if (cachedPL[i6].pickcode === curPid) { idx6 = i6; break; } }
                         if (idx6 > 0) navToPL(idx6 - 1);
