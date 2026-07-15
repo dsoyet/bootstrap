@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.6
+// @version      1.7
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
 // @downloadURL   https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
@@ -220,7 +220,7 @@
         // 单次注入，不重复破坏 DOM
         document.body.innerHTML =
             `<div id="scene-box" style="width:100vw;height:100vh">
-                <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true" renderer="stereo:false">
+                <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true">
                     <a-assets><video id="vr-src" crossorigin="anonymous" playsinline autoplay muted></video></a-assets>
                     <a-sky id="vr-sphere" src="#vr-src" phi-start="180" phi-length="180" radius="5000"></a-sky>
                     <a-video id="vr-flat" src="#vr-src" width="23" height="12.9375" position="0 0 -7.7" visible="false"></a-video>
@@ -237,7 +237,7 @@
         // 版本水印（Wolvic 无控制台，屏幕显示确认版本）
         var verEl = document.createElement('div');
         verEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;color:rgba(255,255,255,0.5);font:11px monospace;pointer-events:none';
-        verEl.textContent = 'VRQuest v1.6 | A-Frame 1.8';
+        verEl.textContent = 'VRQuest v1.7 | A-Frame 1.8 | MONO';
         document.body.appendChild(verEl);
 
         // 180° SBS UV：取左眼画面
@@ -263,17 +263,23 @@
         cam = document.getElementById('cam');
         autoNext = GM_getValue('vr_auto_next', false);
 
-        // 修复 WebXR 双眼交替渲染导致的视频纹理闪烁
-        // timeupdate 可能在左右眼渲染之间触发，改用每帧强制刷新
-        function forceTexUpdate() {
-            if (!vSphere) { requestAnimationFrame(forceTexUpdate); return; }
-            var mesh = vSphere.getObject3D('mesh');
-            if (mesh && mesh.material && mesh.material.map) {
-                mesh.material.map.needsUpdate = true;
-            }
-            requestAnimationFrame(forceTexUpdate);
-        }
-        requestAnimationFrame(forceTexUpdate);
+        // 强制单眼渲染：右眼拷贝左眼画面（调试闪烁用）
+        setTimeout(function() {
+            var sceneEl = document.querySelector('a-scene');
+            if (!sceneEl || !sceneEl.renderer) return;
+            var origRender = sceneEl.renderer.render.bind(sceneEl.renderer);
+            sceneEl.renderer.render = function(scene, cam) {
+                if (cam && cam.views && cam.views.length > 1) {
+                    var v = cam.views;
+                    v[1].projectionMatrix.copy(v[0].projectionMatrix);
+                    if (v[0].transform && v[1].transform) {
+                        v[1].transform.matrix.copy(v[0].transform.matrix);
+                    }
+                }
+                origRender(scene, cam);
+            };
+            console.log('[VRQuest] 强制单眼渲染已就绪');
+        }, 1000);
 
         function switchMode(vr) {
             isVR = vr;
