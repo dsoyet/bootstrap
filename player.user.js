@@ -295,14 +295,8 @@
     var isVR = true, vSphere = null, vFlat = null, cam = null;
 
     async function initScene(onReady) {
-            // 先加载库（DOM 里不能已有 a-scene，否则 1.8.0 报错）
             document.head.innerHTML = '<meta charset="utf-8"><title>VR Player</title>';
             document.body.style.cssText = 'margin:0;padding:0;background:#000;overflow:hidden';
-            document.body.innerHTML = '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10">⏳ 加载中...</div>';
-
-            await loadJs('https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js');
-            await loadJs('https://aframe.io/releases/1.8.0/aframe.min.js');
-
             document.body.innerHTML =
                 `<div id="scene-box" style="width:100vw;height:100vh">
                     <a-scene embedded style="width:100%;height:100%" vr-mode-ui="enabled:true">
@@ -314,14 +308,17 @@
                 </div>` +
                 '<div id="sub-overlay" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:99999999;pointer-events:none;display:none;text-align:center;max-width:90%"><span style="color:#fff;font-size:26px;font-weight:bold;display:inline-block;line-height:1.5;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 8px #000,0 0 16px #000"></span></div>' +
                 '<div id="progress-bar" style="position:fixed;bottom:20px;left:10%;width:80%;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;z-index:10000;display:none"><div id="progress-fill" style="height:100%;background:#1e90ff;border-radius:2px;width:0%"></div></div>' +
-                '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10"></div>';
+                '<div id="msg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#aaa;font-size:16px;z-index:10">⏳ 加载中...</div>';
+
+            await loadJs('https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js');
+            await loadJs('https://aframe.io/releases/1.6.0/aframe.min.js');
             console.log('[115Player] 就绪');
 
             // Quest 移动端优化
             if (/Oculus|Quest/i.test(navigator.userAgent)) {
                 var scene = document.querySelector('a-scene');
                 if (scene) {
-                    scene.setAttribute('renderer', 'antialias:false;sortObjects:true;maxCanvasWidth:2048;maxCanvasHeight:2048');
+                    scene.setAttribute('renderer', 'antialias:false;sortObjects:true;physicallyCorrectLights:false;maxCanvasWidth:2048;maxCanvasHeight:2048');
                 }
             }
 
