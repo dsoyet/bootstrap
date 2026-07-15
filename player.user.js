@@ -432,10 +432,7 @@
             };
             window.addEventListener('keydown', window._115Key);
 
-            // Media Session API: 遥控器媒体键
-            // 浏览器注册 Media Session 后会拦截媒体键，不再触发 keydown
-            // 必须注册所有 action handler，否则对应按键被浏览器吞掉
-            var msNextHandler, msPrevHandler;
+            // Media Session API: 遥控器长按快进/快退
             if ('mediaSession' in navigator) {
                 try {
                     navigator.mediaSession.setActionHandler('seekbackward', function(details) {
@@ -446,19 +443,7 @@
                         console.log('[Player] MediaSession seekforward', details);
                         if (v.duration) { hlsSeek(Math.min(v.duration, v.currentTime + 30)); v.muted = false; showProgress(); }
                     });
-                    // nexttrack/previoustrack: FORWARD/REWIND 和 NEXT/PREV 在浏览器层
-                    // 都映射到这两个 action，未注册时浏览器会吞掉按键不做任何事
-                    msNextHandler = function() {
-                        console.log('[Player] MediaSession nexttrack');
-                        if (v.duration) { hlsSeek(Math.min(v.duration, v.currentTime + 60)); v.muted = false; showProgress(); }
-                    };
-                    msPrevHandler = function() {
-                        console.log('[Player] MediaSession previoustrack');
-                        if (v.duration) { hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); }
-                    };
-                    navigator.mediaSession.setActionHandler('nexttrack', msNextHandler);
-                    navigator.mediaSession.setActionHandler('previoustrack', msPrevHandler);
-                    console.log('[Player] MediaSession 全部 action handlers 已注册');
+                    console.log('[Player] MediaSession seek handlers 已注册');
                 } catch(e) { console.log('[Player] MediaSession 注册失败:', e); }
             } else { console.log('[Player] MediaSession 不可用'); }
 
@@ -592,18 +577,8 @@
                     console.log('[Player] WebHID 断开');
                     hidDevice = null;
                     showToast('🔌 遥控器已断开');
-                    // 恢复 Media Session 兜底
-                    if (navigator.mediaSession && msNextHandler) {
-                        navigator.mediaSession.setActionHandler('nexttrack', msNextHandler);
-                        navigator.mediaSession.setActionHandler('previoustrack', msPrevHandler);
-                    }
                 });
-                // WebHID 接管：清除 Media Session nexttrack/previoustrack，避免双重触发
-                if (navigator.mediaSession) {
-                    navigator.mediaSession.setActionHandler('nexttrack', null);
-                    navigator.mediaSession.setActionHandler('previoustrack', null);
-                    console.log('[Player] WebHID 已接管 nexttrack/previoustrack');
-                }
+                console.log('[Player] WebHID 事件监听已就绪');
             }
 
             connectHID();
