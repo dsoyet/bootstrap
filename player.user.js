@@ -30,7 +30,7 @@
         } catch(e) {}
         return [];
     }
-    function savePL(list) { cachedPL = list; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(list)); }
+    function savePL(list) { localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(list)); }
     function addToPL(pickcode, name, cid) {
         var list = getPL();
         list = list.filter(function(x) { return x.pickcode !== pickcode; });
@@ -75,7 +75,6 @@
     // ── 全局状态 ──
     var curPid = null, curFileId = null, curParentId = null, autoNext = false, hls = null, v = null;
     var isVR = true, vSphere = null, vFlat = null, cam = null;
-    var cachedPL = []; // WebHID 回调中 GM_getValue 不可用，用缓存
 
     if (location.pathname === '/web/lixian/' && location.search.includes('pickcode=')) {
         const pid = new URL(location.href).searchParams.get('pickcode');
@@ -354,7 +353,6 @@
             vFlat = document.getElementById('vr-flat');
             cam = document.getElementById('cam');
             autoNext = GM_getValue('vr_auto_next', false);
-            cachedPL = getPL();
 
             function switchMode(vr) {
                 isVR = vr;
@@ -403,13 +401,13 @@
                     hlsSeek(Math.max(0, v.currentTime - 60)); showProgress(); e.preventDefault();
                 }
                 else if (e.key === 'ArrowLeft' || e.key === 'AudioVolumeDown' || e.key === 'VolumeDown' || e.keyCode === 174) {
-                    var pl = getPL(); cachedPL = pl; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(pl)); var idx = -1;
+                    var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx > 0) navToPL(idx - 1);
                     e.preventDefault();
                 }
                 else if (e.key === 'ArrowRight' || e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.keyCode === 175) {
-                    var pl = getPL(); cachedPL = pl; localStorage.setItem('vr_pl_' + PL_KEY, JSON.stringify(pl)); var idx = -1;
+                    var pl = getPL(), idx = -1;
                     for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                     if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
                     e.preventDefault();
@@ -487,52 +485,26 @@
             pollGamepad();
             console.log('[Player] Gamepad 轮询已启动，按手柄上下键查看按钮编号');
 
-            // ── WebHID: 蓝牙遥控器 Consumer Control ──
+            // ── WebHID: 蓝牙遥控器 → 转键盘事件 ──
             var hidDevice = null;
+            var HID_TO_KEY = {
+                0x00B3: 'ArrowUp',     // FORWARD → 快进
+                0x00B4: 'ArrowDown',   // REWIND  → 快退
+                0x00B5: 'ArrowRight',  // NEXT    → 下一集
+                0x00B6: 'ArrowLeft',   // PREV    → 上一集
+                0x00CD: ' ',           // PLAYPAUSE
+                0x0224: 'v'            // HOME → 切换VR/平面
+            };
 
             function handleHIDReport(data) {
                 var usage = data[0] | (data[1] << 8);
                 console.log('[Player] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
                 if (usage === 0) return;
-                if (!v || !v.duration) { console.log('[Player] WebHID 忽略（视频未就绪）'); return; }
-
-                switch (usage) {
-                    case 0x00B3: // FORWARD → 快进 60s
-                        hlsSeek(Math.min(v.duration, v.currentTime + 60));
-                        showProgress();
-                        break;
-                    case 0x00B4: // REWIND → 快退 60s
-                        hlsSeek(Math.max(0, v.currentTime - 60));
-                        showProgress();
-                        break;
-                    case 0x00B5: // NEXT → 下一集
-                        try {
-                            var ls5 = JSON.parse(localStorage.getItem('vr_pl_' + PL_KEY) || '[]');
-                            if (ls5.length > cachedPL.length) cachedPL = ls5;
-                        } catch(e) {}
-                        var idx5 = -1;
-                        for (var i5 = 0; i5 < cachedPL.length; i5++) { if (cachedPL[i5].pickcode === curPid) { idx5 = i5; break; } }
-                        console.log('[Player] NEXT pl=' + cachedPL.length + ' idx=' + idx5 + ' pid=' + curPid);
-                        if (idx5 >= 0 && idx5 < cachedPL.length - 1) navToPL(idx5 + 1);
-                        else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
-                        break;
-                    case 0x00B6: // PREV → 上一集
-                        try {
-                            var ls6 = JSON.parse(localStorage.getItem('vr_pl_' + PL_KEY) || '[]');
-                            if (ls6.length > cachedPL.length) cachedPL = ls6;
-                        } catch(e) {}
-                        var idx6 = -1;
-                        for (var i6 = 0; i6 < cachedPL.length; i6++) { if (cachedPL[i6].pickcode === curPid) { idx6 = i6; break; } }
-                        console.log('[Player] PREV pl=' + cachedPL.length + ' idx=' + idx6 + ' pid=' + curPid);
-                        if (idx6 > 0) navToPL(idx6 - 1);
-                        else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
-                        break;
-                    case 0x00CD: // PLAYPAUSE
-                        v.paused ? v.play() : v.pause();
-                        break;
-                    case 0x0224: // HOME → 切换VR/平面
-                        switchMode(!isVR);
-                        break;
+                var key = HID_TO_KEY[usage];
+                if (!key) return;
+                // 派发键盘事件，让现有 keydown 处理器统一处理
+                window.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
+            }
                 }
             }
 
