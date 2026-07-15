@@ -482,23 +482,23 @@
                 if (!v.duration) return;
 
                 switch (usage) {
-                    case 0x00B3: // FORWARD → 快进 60s
+                    case 0x00B5: // FORWARD → 快进 60s
                         hlsSeek(Math.min(v.duration, v.currentTime + 60));
                         v.muted = false;
                         showProgress();
                         break;
-                    case 0x00B4: // REWIND → 快退 60s
+                    case 0x00B6: // REWIND → 快退 60s
                         hlsSeek(Math.max(0, v.currentTime - 60));
                         showProgress();
                         break;
-                    case 0x00B5: // NEXT → 下一集
+                    case 0x00B3: // NEXT → 下一集
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
                             if (idx >= 0 && idx < pl.length - 1) navToPL(idx + 1);
                         })();
                         break;
-                    case 0x00B6: // PREV → 上一集
+                    case 0x00B4: // PREV → 上一集
                         (function() {
                             var pl = getPL(), idx = -1;
                             for (var i = 0; i < pl.length; i++) { if (pl[i].pickcode === curPid) { idx = i; break; } }
