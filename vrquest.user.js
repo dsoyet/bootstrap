@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VR Quest
 // @namespace    https://greasyfork.org/
-// @version      1.1
+// @version      1.2
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
 // @updateURL     https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
 // @downloadURL   https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
@@ -225,6 +225,8 @@
                     <a-sky id="vr-sphere" src="#vr-src" phi-start="180" phi-length="180" radius="5000"></a-sky>
                     <a-video id="vr-flat" src="#vr-src" width="23" height="12.9375" position="0 0 -7.7" visible="false"></a-video>
                     <a-camera id="cam" position="0 0 0" wasd-controls="acceleration:50" look-controls="reverseMouseDrag:true"></a-camera>
+                    <a-entity id="leftHand" hand-controls="hand: left"></a-entity>
+                    <a-entity id="rightHand" hand-controls="hand: right" laser-controls></a-entity>
                 </a-scene>
             </div>` +
             '<div id="sub-overlay" style="position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:99999999;pointer-events:none;display:none;text-align:center;max-width:90%"><span style="color:#fff;font-size:26px;font-weight:bold;display:inline-block;line-height:1.5;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 8px #000,0 0 16px #000"></span></div>' +
