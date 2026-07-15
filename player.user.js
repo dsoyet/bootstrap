@@ -326,15 +326,21 @@
 
             // 180° SBS UV：取左眼画面
             (function fixUV() {
-                const sphere = document.getElementById('vr-sphere');
-                const mesh = sphere.getObject3D('mesh');
-                if (!mesh) { sphere.addEventListener('loaded', fixUV); return; }
-                const uv = mesh.geometry.attributes.uv;
-                if (!uv) return;
-                for (let i = 0; i < uv.count; i++) {
-                    uv.setX(i, uv.getX(i) * 0.5);
+                try {
+                    const sphere = document.getElementById('vr-sphere');
+                    const mesh = sphere.getObject3D('mesh');
+                    if (!mesh) { sphere.addEventListener('loaded', fixUV); return; }
+                    const uv = mesh.geometry.attributes.uv;
+                    if (!uv) return;
+                    for (let i = 0; i < uv.count; i++) {
+                        uv.setX(i, uv.getX(i) * 0.5);
+                    }
+                    uv.needsUpdate = true;
+                } catch(e) {
+                    console.log('[Player] fixUV 推迟（A-Frame 未就绪）', e.message);
+                    var sphere = document.getElementById('vr-sphere');
+                    if (sphere) sphere.addEventListener('loaded', fixUV);
                 }
-                uv.needsUpdate = true;
             })();
 
             v = document.getElementById('vr-src');
