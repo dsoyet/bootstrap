@@ -3,8 +3,8 @@
 // @namespace    https://greasyfork.org/
 // @version      1.5
 // @description  115 Cloud：A-Frame 1.8 180° VR Player + WebHID 遥控器支持
-// @updateURL     https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
-// @downloadURL   https://raw.githubusercontent.com/dsoyet/bootstrap/master/vrquest.user.js
+// @updateURL     https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
+// @downloadURL   https://cdn.jsdelivr.net/gh/dsoyet/bootstrap@master/vrquest.user.js
 // @match        https://115.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_openInTab
