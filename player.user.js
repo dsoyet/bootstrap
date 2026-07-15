@@ -492,8 +492,9 @@
 
             function handleHIDReport(data) {
                 var usage = data[0] | (data[1] << 8);
+                console.log('[Player] 🎮 WebHID usage=0x' + usage.toString(16).toUpperCase().padStart(4, '0'));
                 if (usage === 0) return;
-                if (!v || !v.duration) return;
+                if (!v || !v.duration) { console.log('[Player] WebHID 忽略（视频未就绪）'); return; }
 
                 switch (usage) {
                     case 0x00B3: // FORWARD → 快进 60s
@@ -511,6 +512,7 @@
                         } catch(e) {}
                         var idx5 = -1;
                         for (var i5 = 0; i5 < cachedPL.length; i5++) { if (cachedPL[i5].pickcode === curPid) { idx5 = i5; break; } }
+                        console.log('[Player] NEXT pl=' + cachedPL.length + ' idx=' + idx5 + ' pid=' + curPid);
                         if (idx5 >= 0 && idx5 < cachedPL.length - 1) navToPL(idx5 + 1);
                         else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
                         break;
@@ -521,6 +523,7 @@
                         } catch(e) {}
                         var idx6 = -1;
                         for (var i6 = 0; i6 < cachedPL.length; i6++) { if (cachedPL[i6].pickcode === curPid) { idx6 = i6; break; } }
+                        console.log('[Player] PREV pl=' + cachedPL.length + ' idx=' + idx6 + ' pid=' + curPid);
                         if (idx6 > 0) navToPL(idx6 - 1);
                         else if (cachedPL.length === 0) showToast('⚠ 播放列表为空，请先在文件列表页添加视频');
                         break;
