@@ -219,7 +219,7 @@
         // 在 A-Frame 加载后再注入场景 HTML
         document.body.innerHTML =
             `<div id="scene-box" style="width:100vw;height:100vh">
-                <a-scene embedded style="width:100%;height:100%" vr-mode-ui="enabled:true">
+                <a-scene style="width:100%;height:100%" vr-mode-ui="enabled:true">
                     <a-assets><video id="vr-src" crossorigin="anonymous" playsinline autoplay muted loop></video></a-assets>
                     <a-sky id="vr-sphere" src="#vr-src" phi-start="180" phi-length="180" radius="5000"></a-sky>
                     <a-video id="vr-flat" src="#vr-src" width="23" height="12.9375" position="0 0 -7.7" visible="false"></a-video>
