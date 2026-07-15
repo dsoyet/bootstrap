@@ -257,6 +257,14 @@
         cam = document.getElementById('cam');
         autoNext = GM_getValue('vr_auto_next', false);
 
+        // 修复 WebXR 双眼交替渲染导致的视频纹理闪烁
+        v.addEventListener('timeupdate', function() {
+            var mesh = vSphere.getObject3D('mesh');
+            if (mesh && mesh.material && mesh.material.map) {
+                mesh.material.map.needsUpdate = true;
+            }
+        });
+
         function switchMode(vr) {
             isVR = vr;
             vSphere.setAttribute('visible', vr);
