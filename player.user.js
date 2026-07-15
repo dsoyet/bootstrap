@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Player
 // @namespace    https://greasyfork.org/
-// @version      5.0
+// @version      5.1
 // @description  115 Cloud：A-Frame 180° VR Player
 // @match        https://115.com/*
 // @grant        GM_xmlhttpRequest
